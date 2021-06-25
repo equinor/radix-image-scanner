@@ -10,6 +10,16 @@ if [ -z "$OUTPUT_CONFIGMAP_NAMESPACE" ]; then
   exit 1
 fi
 
+if [ -z "$VULNERABILITY_LIST_KEY" ]; then
+  echo "Missing value for variable VULNERABILITY_LIST_KEY"
+  exit 1
+fi
+
+if [ -z "$VULNERABILITY_COUNT_KEY" ]; then
+  echo "Missing value for variable VULNERABILITY_COUNT_KEY"
+  exit 1
+fi
+
 if test -f "${AZURE_CREDENTIALS}"; then
   if [[ -z "${TRIVY_USERNAME}" ]]; then
     TRIVY_USERNAME=$(cat ${AZURE_CREDENTIALS} | jq -r '.id')
@@ -30,12 +40,10 @@ if [ $? -eq 0 ]; then
   > /home/image-scanner/scan/aggregate.json
 
   kubectl create configmap ${OUTPUT_CONFIGMAP_NAME} -n ${OUTPUT_CONFIGMAP_NAMESPACE} \
-  --from-file=vulnerability_list=/home/image-scanner/scan/vulnerabilities.json \
-  --from-file=vulnerability_count=/home/image-scanner/scan/aggregate.json \
-  --from-literal=scan_success=true
+  --from-file="$VULNERABILITY_LIST_KEY"=/home/image-scanner/scan/vulnerabilities.json \
+  --from-file="$VULNERABILITY_COUNT_KEY"=/home/image-scanner/scan/aggregate.json 
 else
-  kubectl create configmap ${OUTPUT_CONFIGMAP_NAME} -n ${OUTPUT_CONFIGMAP_NAMESPACE} \
-  --from-literal=scan_success=false
+  kubectl create configmap ${OUTPUT_CONFIGMAP_NAME} -n ${OUTPUT_CONFIGMAP_NAMESPACE}
 fi
 
 exit 0
