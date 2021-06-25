@@ -15,10 +15,7 @@ RUN chmod +x /radix-image-scanner/scan_image.sh
 
 ENV TRIVY_AUTH_URL= \
     TRIVY_USERNAME= \
-    TRIVY_PASSWORD= \
-    RESULT_CONFIGMAP_NAME= \
-    RESULT_CONFIGMAP_NAMESPACE=
-
+    TRIVY_PASSWORD=
 
 USER image-scanner
 CMD sh /radix-image-scanner/scan_image.sh
