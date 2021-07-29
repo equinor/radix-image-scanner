@@ -34,7 +34,7 @@ mkdir /home/image-scanner/scan
 
 # TRIVY_NEW_JSON_SCHEMA: https://github.com/aquasecurity/trivy/discussions/1050
 TRIVY_NEW_JSON_SCHEMA=true trivy -q i -f json --timeout 20m  ${IMAGE_PATH} |
-  jq '[.Results[] | .Target as $target | .Vulnerabilities | .[]? | {packageName: .PkgName, version: .InstalledVersion, target: $target, description: .Description, severity: .Severity, publishedDate: .PublishedDate, cwe: .CweIDs, cve: [.VulnerabilityID], cvss: .CVSS["nvd"].V3Score, references: .References}]' \
+  jq '[.Results[] | .Target as $target | .Vulnerabilities | .[]? | {packageName: .PkgName, version: .InstalledVersion, target: $target, title: .Title, description: .Description, severity: .Severity, publishedDate: .PublishedDate, cwe: .CweIDs, cve: [.VulnerabilityID], cvss: .CVSS["nvd"].V3Score, references: .References}]' \
   > /home/image-scanner/scan/vulnerabilities.json || exit
 
 jq 'group_by(.severity | ascii_downcase) | [.[] | {severity: .[0].severity | ascii_downcase, count: length}] | [.[] | {(.severity):.count}] | add | if . == null then {} else . end' /home/image-scanner/scan/vulnerabilities.json \
