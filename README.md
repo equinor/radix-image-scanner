@@ -25,6 +25,7 @@ JSON for detailed list of vulnerabilities:
         "packageName": "coreutils",
         "version": "8.30-3",
         "target": "radixdev.azurecr.io/radix-job-demo-api:cz413 (debian 10.10)",
+        "title": "coreutils: Non-privileged session can escape to the parent session in chroot",
         "description": "chroot in GNU coreutils...",
         "severity": "LOW",
         "publishedDate": "2017-02-07T15:59:00Z",
