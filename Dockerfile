@@ -13,9 +13,7 @@ RUN sh /radix-image-scanner/install_tools.sh
 COPY scan_image.sh /radix-image-scanner/scan_image.sh
 RUN chmod +x /radix-image-scanner/scan_image.sh
 
-ENV TRIVY_AUTH_URL= \
-    TRIVY_USERNAME= \
-    TRIVY_PASSWORD=
+ENV SNYK_TOKEN=
 
 USER image-scanner
 CMD sh /radix-image-scanner/scan_image.sh

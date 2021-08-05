@@ -20,25 +20,30 @@ if [ -z "$VULNERABILITY_COUNT_KEY" ]; then
   exit 1
 fi
 
+if [ -z "$SNYK_TOKEN" ]; then
+  echo "Missing value for variable SNYK_TOKEN"
+  exit 1
+fi
+
 if test -f "${AZURE_CREDENTIALS}"; then
-  if [[ -z "${TRIVY_USERNAME}" ]]; then
-    TRIVY_USERNAME=$(cat ${AZURE_CREDENTIALS} | jq -r '.id')
+  if [[ -z "${REGISTRY_USERNAME}" ]]; then
+    REGISTRY_USERNAME=$(cat ${AZURE_CREDENTIALS} | jq -r '.id')
   fi
 
-  if [[ -z "${TRIVY_PASSWORD}" ]]; then
-    TRIVY_PASSWORD=$(cat ${AZURE_CREDENTIALS} | jq -r '.password')
+  if [[ -z "${REGISTRY_PASSWORD}" ]]; then
+    REGISTRY_PASSWORD=$(cat ${AZURE_CREDENTIALS} | jq -r '.password')
   fi
 fi
 
 mkdir /home/image-scanner/scan
 
-# TRIVY_NEW_JSON_SCHEMA: https://github.com/aquasecurity/trivy/discussions/1050
-TRIVY_NEW_JSON_SCHEMA=true trivy -q i -f json --timeout 20m  ${IMAGE_PATH} |
-  jq '[.Results[] | .Target as $target | .Vulnerabilities | .[]? | {packageName: .PkgName, version: .InstalledVersion, target: $target, title: .Title, description: .Description, severity: .Severity, publishedDate: .PublishedDate, cwe: .CweIDs, cve: [.VulnerabilityID], cvss: .CVSS["nvd"].V3Score, references: .References}]' \
+snyk container test --username=${REGISTRY_USERNAME} --password=${REGISTRY_PASSWORD} --json ${IMAGE_PATH} |
+  jq '[.path as $target | .vulnerabilities | .[]? | {packageName: .packageName, version: .version, target: $target, title: .title, description: .description, severity: .severity | ascii_upcase, publishedDate: .publicationTime, cwe: .identifiers.CWE, cve: .identifiers.CVE, cvss: .cvssScore, references: [.references | .[]? | .url]}]' \
   > /home/image-scanner/scan/vulnerabilities.json || exit
 
 jq 'group_by(.severity | ascii_downcase) | [.[] | {severity: .[0].severity | ascii_downcase, count: length}] | [.[] | {(.severity):.count}] | add | if . == null then {} else . end' /home/image-scanner/scan/vulnerabilities.json \
   > /home/image-scanner/scan/aggregate.json || exit
+
 
 kubectl create configmap ${OUTPUT_CONFIGMAP_NAME} -n ${OUTPUT_CONFIGMAP_NAMESPACE} \
   --from-file="$VULNERABILITY_LIST_KEY"=/home/image-scanner/scan/vulnerabilities.json \
