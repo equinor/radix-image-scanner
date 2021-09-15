@@ -38,9 +38,7 @@ fi
 mkdir /home/image-scanner/scan
 
 snyk container test --username=${REGISTRY_USERNAME} --password=${REGISTRY_PASSWORD} --json ${IMAGE_PATH} |
-  # The regex used to test and extract text from the original output description is used twice
-  # Remember to update both places
-  jq '[.path as $target | .vulnerabilities | .[]? | (.description | test("^## NVD Description\n(.*?)\n(<i>.*</i>?)(\n<i> See `Remediation`(.*?)){0,1}\n\n(.*?)\n")) as $match | {packageName: .packageName, version: .version, target: $target, title: .title, description: (if $match == false then .description else (.description | match("^## NVD Description\n(.*?)\n(<i>.*</i>?)(\n<i> See `Remediation`(.*?)){0,1}\n\n(.*?)\n")).captures[4].string end ), severity: .severity | ascii_upcase, publishedDate: .publicationTime, cwe: .identifiers.CWE, cve: .identifiers.CVE, cvss: .cvssScore, references: ["https://snyk.io/vuln/" + .id]}]' \
+  jq '"^## NVD Description\n(.*?)\n(<i>.*</i>?)(\n<i> See `Remediation`(.*?)){0,1}\n\n(.*?)\n" as $regex | [.path as $target | .vulnerabilities | .[]? | (.description | test($regex)) as $match | {packageName: .packageName, version: .version, target: $target, title: .title, description: (if $match == false then .description else (.description | match($regex)).captures[4].string end ), severity: .severity | ascii_upcase, publishedDate: .publicationTime, cwe: .identifiers.CWE, cve: .identifiers.CVE, cvss: .cvssScore, references: ["https://snyk.io/vuln/" + .id]}]' \
   > /home/image-scanner/scan/vulnerabilities.json || exit
 
 jq 'group_by(.severity | ascii_downcase) | [.[] | {severity: .[0].severity | ascii_downcase, count: length}] | [.[] | {(.severity):.count}] | add | if . == null then {} else . end' /home/image-scanner/scan/vulnerabilities.json \
